@@ -1,4 +1,4 @@
-# Multi Shorts Chaos 🔥
+# Ultimate Doomscroller 🔥
 
 A completely unserious joke website that lets you run **up to 10 YouTube Shorts players** at once in a 2×5 grid.
 
