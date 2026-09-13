@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multi Shorts Chaos — Joke Edition</title>
+  <meta name="description" content="A ridiculous multi-window YouTube Shorts player. Space = next all. Ctrl/Cmd+number = next one window. Custom speed. Pure chaos." />
+  <style>
+    :root {
+      --bg: #0f0f13;
+      --panel: #1a1a24;
+      --border: #2e2e3a;
+      --accent: #ff0050;
+      --accent2: #00f0ff;
+      --text: #f0f0f5;
+      --muted: #8888a0;
+      --window-bg: #12121a;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    header {
+      background: linear-gradient(90deg, #1a1a24, #2a1020, #1a1a24);
+      border-bottom: 2px solid var(--accent);
+      padding: 12px 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(255, 0, 80, 0.15);
+    }
+
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      white-space: nowrap;
+    }
+
+    .tagline {
+      font-size: 0.75rem;
+      color: var(--muted);
+      width: 100%;
+      margin-top: -8px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin-left: auto;
+    }
+
+    label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    select, input[type="number"], input[type="text"], button {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 0.85rem;
+    }
+
+    input[type="range"] {
+      width: 100px;
+      accent-color: var(--accent);
+    }
+
+    button {
+      cursor: pointer;
+      background: var(--accent);
+      border: none;
+      font-weight: 600;
+      transition: transform 0.1s, filter 0.15s;
+    }
+
+    button:hover { filter: brightness(1.15); }
+    button:active { transform: scale(0.97); }
+
+    button.secondary {
+      background: var(--panel);
+      border: 1px solid var(--border);
+    }
+
+    .speed-value {
+      min-width: 2.5rem;
+      font-variant-numeric: tabular-nums;
+      color: var(--accent2);
+      font-weight: 700;
+    }
+
+    .help {
+      font-size: 0.72rem;
+      color: var(--muted);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      line-height: 1.4;
+    }
+
+    .help kbd {
+      background: #2a2a38;
+      border: 1px solid #444;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: inherit;
+      font-size: 0.7rem;
+    }
+
+    main {
+      padding: 12px;
+    }
+
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 10px;
+      max-width: 1800px;
+      margin: 0 auto;
+      min-height: calc(100vh - 140px);
+    }
+
+    .window {
+      background: var(--window-bg);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      min-height: 220px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .window.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 18px rgba(255, 0, 80, 0.35);
+    }
+
+    .window-header {
+      background: #16161f;
+      padding: 4px 8px;
+      font-size: 0.7rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      user-select: none;
+    }
+
+    .window-title {
+      font-weight: 600;
+      color: var(--accent2);
+    }
+
+    .window-id {
+      color: var(--muted);
+      font-size: 0.65rem;
+      max-width: 90px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .player-wrap {
+      flex: 1;
+      position: relative;
+      background: #000;
+      min-height: 0;
+    }
+
+    .player-wrap iframe,
+    .player-wrap > div {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .window-footer {
+      padding: 4px 6px;
+      background: #16161f;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .window-footer input {
+      flex: 1;
+      min-width: 0;
+      font-size: 0.7rem;
+      padding: 3px 6px;
+    }
+
+    .window-footer button {
+      padding: 3px 8px;
+      font-size: 0.7rem;
+    }
+
+    .hidden { display: none !important; }
+
+    footer {
+      text-align: center;
+      padding: 16px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    footer a { color: var(--accent2); }
+
+    /* Responsive: fewer columns on smaller screens */
+    @media (max-width: 1200px) {
+      #grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (max-width: 900px) {
+      #grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 600px) {
+      #grid { grid-template-columns: repeat(2, 1fr); }
+      header { flex-direction: column; align-items: flex-start; }
+      .controls { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>🔥 Multi Shorts Chaos</h1>
+      <div class="tagline">A completely unserious multi-window Shorts player · GitHub Pages ready</div>
+    </div>
+
+    <div class="controls">
+      <label>
+        Windows
+        <select id="numWindows">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="8">8</option>
+          <option value="10" selected>10</option>
+        </select>
+      </label>
+
+      <label>
+        Speed
+        <input type="range" id="speedSlider" min="0.25" max="2" step="0.05" value="1" />
+        <span class="speed-value" id="speedValue">1.00×</span>
+      </label>
+
+      <button id="applySpeed">Apply Speed</button>
+      <button class="secondary" id="playAll">Play All</button>
+      <button class="secondary" id="pauseAll">Pause All</button>
+      <button class="secondary" id="muteAll">Mute All</button>
+      <button class="secondary" id="unmuteAll">Unmute</button>
+    </div>
+
+    <div class="help">
+      <kbd>Space</kbd> = Next Short <strong>all windows</strong> &nbsp;·&nbsp;
+      <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>1</kbd>–<kbd>9</kbd>/<kbd>0</kbd> = Next for that window only &nbsp;·&nbsp;
+      Paste any Shorts / watch URL or video ID into a window and hit Load
+    </div>
+  </header>
+
+  <main>
+    <div id="grid"></div>
+  </main>
+
+  <footer>
+    Joke website · Not affiliated with YouTube · 
+    <a href="https://github.com/" target="_blank" rel="noopener">Host on GitHub Pages</a> by dropping this folder into a repo
+  </footer>
+
+  <script>
+    // Default Shorts / short-form video IDs (public, real videos). 
+    // Users can replace any of them. "Next" cycles this list per window.
+    const DEFAULT_SHORTS = [
+      "oFWQhXdGn2o", // example short-style
+      "dLMd9VJxOSw",
+      "xHglGIzsNmY",
+      "jNQXAC9IVRw", // classic (will still play)
+      "9bZkp7q19f0",
+      "kJQP7kiw5Fk",
+      "fJ9rUzIMcZQ",
+      "OPf0YbXqDm0",
+      "hT_nvWreIhg",
+      "YQHsXMglC9A",
+      "RgKAFK5djSk",
+      "CevxZvSJLk8",
+      "09R8_2nJtjg",
+      "pt8VYOfr8DI",
+      "2Vv-BfVoq4g"
+    ];
+
+    let players = [];          // YT.Player instances
+    let currentIndices = [];   // index into DEFAULT_SHORTS (or custom) per window
+    let customIds = [];        // optional override ID per window (string or null)
+    let numWindows = 10;
+    let currentSpeed = 1;
+    let ytReady = false;
+
+    const grid = document.getElementById("grid");
+    const numSelect = document.getElementById("numWindows");
+    const speedSlider = document.getElementById("speedSlider");
+    const speedValue = document.getElementById("speedValue");
+
+    // Extract video ID from URL or raw ID
+    function extractId(input) {
+      if (!input) return null;
+      input = input.trim();
+      // Already an ID
+      if (/^[\w-]{11}$/.test(input)) return input;
+      // Shorts
+      let m = input.match(/youtube\.com\/shorts\/([\w-]{11})/);
+      if (m) return m[1];
+      // watch?v=
+      m = input.match(/[?&]v=([\w-]{11})/);
+      if (m) return m[1];
+      // youtu.be
+      m = input.match(/youtu\.be\/([\w-]{11})/);
+      if (m) return m[1];
+      // embed
+      m = input.match(/youtube\.com\/embed\/([\w-]{11})/);
+      if (m) return m[1];
+      return null;
+    }
+
+    function getVideoIdForWindow(i) {
+      if (customIds[i]) return customIds[i];
+      return DEFAULT_SHORTS[currentIndices[i] % DEFAULT_SHORTS.length];
+    }
+
+    function createWindowElements() {
+      grid.innerHTML = "";
+      players = [];
+      currentIndices = [];
+      customIds = [];
+
+      for (let i = 0; i < 10; i++) {
+        const win = document.createElement("div");
+        win.className = "window" + (i >= numWindows ? " hidden" : "");
+        win.dataset.index = i;
+        win.id = `window-${i}`;
+
+        win.innerHTML = `
+          <div class="window-header">
+            <span class="window-title">Window ${i + 1}</span>
+            <span class="window-id" id="vidlabel-${i}">—</span>
+          </div>
+          <div class="player-wrap">
+            <div id="player-${i}"></div>
+          </div>
+          <div class="window-footer">
+            <input type="text" id="input-${i}" placeholder="Paste Shorts URL or ID" />
+            <button data-load="${i}">Load</button>
+            <button data-next="${i}" title="Next Short">⏭</button>
+          </div>
+        `;
+        grid.appendChild(win);
+
+        currentIndices[i] = i % DEFAULT_SHORTS.length;
+        customIds[i] = null;
+      }
+
+      // Event delegation for Load / Next buttons
+      grid.addEventListener("click", (e) => {
+        const loadBtn = e.target.closest("[data-load]");
+        const nextBtn = e.target.closest("[data-next]");
+        if (loadBtn) {
+          const idx = parseInt(loadBtn.dataset.load, 10);
+          const val = document.getElementById(`input-${idx}`).value;
+          const id = extractId(val);
+          if (id) {
+            customIds[idx] = id;
+            loadVideo(idx, id);
+          } else {
+            alert("Could not parse a video ID from that. Paste a Shorts/watch URL or 11-char ID.");
+          }
+        }
+        if (nextBtn) {
+          const idx = parseInt(nextBtn.dataset.next, 10);
+          nextShort(idx);
+        }
+      });
+    }
+
+    function loadVideo(index, videoId) {
+      if (!players[index] || !videoId) return;
+      players[index].loadVideoById({
+        videoId: videoId,
+        startSeconds: 0
+      });
+      // Re-apply speed after load (API resets it)
+      setTimeout(() => {
+        try { players[index].setPlaybackRate(currentSpeed); } catch (_) {}
+      }, 500);
+      document.getElementById(`vidlabel-${index}`).textContent = videoId;
+    }
+
+    function nextShort(index) {
+      if (index < 0 || index >= numWindows) return;
+      // Clear custom so we cycle the list again
+      customIds[index] = null;
+      currentIndices[index] = (currentIndices[index] + 1) % DEFAULT_SHORTS.length;
+      const id = getVideoIdForWindow(index);
+      loadVideo(index, id);
+
+      // Brief highlight
+      const win = document.getElementById(`window-${index}`);
+      win.classList.add("active");
+      setTimeout(() => win.classList.remove("active"), 400);
+    }
+
+    function nextAll() {
+      for (let i = 0; i < numWindows; i++) nextShort(i);
+    }
+
+    function setSpeedAll(rate) {
+      currentSpeed = rate;
+      players.forEach((p, i) => {
+        if (i < numWindows && p) {
+          try { p.setPlaybackRate(rate); } catch (_) {}
+        }
+      });
+    }
+
+    function playAll() {
+      players.forEach((p, i) => { if (i < numWindows && p) try { p.playVideo(); } catch (_) {} });
+    }
+    function pauseAll() {
+      players.forEach((p, i) => { if (i < numWindows && p) try { p.pauseVideo(); } catch (_) {} });
+    }
+    function muteAll() {
+      players.forEach((p, i) => { if (i < numWindows && p) try { p.mute(); } catch (_) {} });
+    }
+    function unmuteAll() {
+      players.forEach((p, i) => { if (i < numWindows && p) try { p.unMute(); } catch (_) {} });
+    }
+
+    function updateVisibility() {
+      for (let i = 0; i < 10; i++) {
+        const win = document.getElementById(`window-${i}`);
+        if (i < numWindows) win.classList.remove("hidden");
+        else win.classList.add("hidden");
+      }
+    }
+
+    // YouTube IFrame API
+    function onYouTubeIframeAPIReady() {
+      ytReady = true;
+      for (let i = 0; i < 10; i++) {
+        const videoId = getVideoIdForWindow(i);
+        players[i] = new YT.Player(`player-${i}`, {
+          videoId: videoId,
+          playerVars: {
+            autoplay: 0,
+            controls: 1,
+            modestbranding: 1,
+            rel: 0,
+            enablejsapi: 1,
+            origin: window.location.origin || "https://localhost",
+            playsinline: 1
+          },
+          events: {
+            onReady: (e) => {
+              document.getElementById(`vidlabel-${i}`).textContent = videoId;
+              try { e.target.setPlaybackRate(currentSpeed); } catch (_) {}
+              // Mute by default so multiple autoplays are less hostile
+              e.target.mute();
+            },
+            onStateChange: (e) => {
+              // When a new video starts, re-apply speed
+              if (e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.BUFFERING) {
+                try { e.target.setPlaybackRate(currentSpeed); } catch (_) {}
+              }
+            }
+          }
+        });
+      }
+    }
+
+    // Keyboard
+    document.addEventListener("keydown", (e) => {
+      // Ignore when typing in an input
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        nextAll();
+        return;
+      }
+
+      // Ctrl / Cmd + number
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
+        const key = e.key;
+        let idx = -1;
+        if (key >= "1" && key <= "9") idx = parseInt(key, 10) - 1;
+        else if (key === "0") idx = 9;
+        if (idx >= 0 && idx < numWindows) {
+          e.preventDefault();
+          nextShort(idx);
+        }
+      }
+    });
+
+    // UI listeners
+    numSelect.addEventListener("change", () => {
+      numWindows = parseInt(numSelect.value, 10);
+      updateVisibility();
+    });
+
+    speedSlider.addEventListener("input", () => {
+      const v = parseFloat(speedSlider.value);
+      speedValue.textContent = v.toFixed(2) + "×";
+    });
+
+    document.getElementById("applySpeed").addEventListener("click", () => {
+      const v = parseFloat(speedSlider.value);
+      setSpeedAll(v);
+    });
+
+    document.getElementById("playAll").addEventListener("click", playAll);
+    document.getElementById("pauseAll").addEventListener("click", pauseAll);
+    document.getElementById("muteAll").addEventListener("click", muteAll);
+    document.getElementById("unmuteAll").addEventListener("click", unmuteAll);
+
+    // Boot
+    createWindowElements();
+    updateVisibility();
+
+    // Load YT API
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+    // Global callback required by the API
+    window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+  </script>
+</body>
+</html>
